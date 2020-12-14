@@ -121,7 +121,7 @@ def CheckContinue(sock):
 	if (len(players) <= 1 and gameState['state'] != 'finish'):
 		MatchOver(sock)
 		time.sleep(1)
-		sock.close()
+		#sock.close()
 		gameState['state'] = 'finish'
 
 # When rounds all finish
@@ -141,7 +141,7 @@ def PostGameDelay(sock):
 
 	print("Closing match")
 	ProcessResults()
-	sock.close()
+	#sock.close()
 	gameState['state'] = 'finish'
 
 def ProcessResults():
