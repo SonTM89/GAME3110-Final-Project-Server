@@ -87,19 +87,21 @@ def gameLoop(sock):
       
       print(inMatchPlayers)
       if len(inMatchPlayers) >= numPlayersInMatch:
-         # Start match loop but using a thread so it doesn't block the loop
-         start_new_thread(MatchServer.StartMatchLoop,(inMatchPlayers, 3,))
-         time.sleep(1) # Using this to make sure the loop initializes for sure
+         matchSock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+         matchSock.bind(('127.0.0.1', 0))
 
          print(len(inMatchPlayers))
          StartMessage = {"cmd": 3}
+         StartMessage["matchPort"] = matchSock.getsockname()[1]
          s=json.dumps(StartMessage)
 
          for p in inMatchPlayers:
             clients.pop(p)
             sock.sendto(bytes(s,'utf8'), (p[0],p[1]))
 
-         break
+         # Start match loop but using a thread so it doesn't block the loop
+         start_new_thread(MatchServer.StartMatchLoop,(matchSock, inMatchPlayers, 3,))
+         time.sleep(1) # Using this to make sure the loop initializes for sure
 
       clients_lock.release()
       time.sleep(1)
@@ -107,7 +109,7 @@ def gameLoop(sock):
 def main():
    port = 12356
    s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-   s.bind(('', port))
+   s.bind(('127.0.0.1', port))
    start_new_thread(gameLoop, (s,))
    start_new_thread(connectionLoop, (s,))
    start_new_thread(cleanClients,(s,))
