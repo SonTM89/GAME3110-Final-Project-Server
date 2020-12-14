@@ -64,8 +64,8 @@ def gameLoop(sock):
    while True:
       GameState = {"cmd": 1, "players": []}
       clients_lock.acquire()
-      print ("Current clients:",clients)
-      print (len(clients))
+      #print ("Current clients:",clients)
+      #print (len(clients))
       for c in clients:
          player = {}
          clients[c]['color'] = {"R": random.random(), "G": random.random(), "B": random.random()}
@@ -73,7 +73,7 @@ def gameLoop(sock):
          player['color'] = clients[c]['color']
          GameState['players'].append(player)
       s=json.dumps(GameState)
-      print(s)
+      #print(s)
       for c in clients:
          sock.sendto(bytes(s,'utf8'), (c[0],c[1]))
 
@@ -87,9 +87,8 @@ def gameLoop(sock):
       
       print(inMatchPlayers)
       if len(inMatchPlayers) >= numPlayersInMatch:
-
          # Start match loop but using a thread so it doesn't block the loop
-         start_new_thread(StartMatchLoop,(sock, inMatchPlayers, 3,))
+         start_new_thread(MatchServer.StartMatchLoop,(inMatchPlayers, 3,))
          time.sleep(1) # Using this to make sure the loop initializes for sure
 
          print(len(inMatchPlayers))
@@ -97,7 +96,10 @@ def gameLoop(sock):
          s=json.dumps(StartMessage)
 
          for p in inMatchPlayers:
+            clients.pop(p)
             sock.sendto(bytes(s,'utf8'), (p[0],p[1]))
+
+         break
 
       clients_lock.release()
       time.sleep(1)

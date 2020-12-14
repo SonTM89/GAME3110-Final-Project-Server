@@ -21,49 +21,49 @@ def ConnectionLoop(sock, playersInMatch):
 	gameState['beginRoundRollcall'] = 0
 
 	while gameState['state'] != 'finish':
+		data, addr = sock.recvfrom(1024)
 		try:
-			data, addr = sock.recvfrom(1024)
 			data = json.loads(data)
+			# Who sent it
+			userid = data['uid']
+
+			if 'command' in data:
+
+				if data['command'] == 'connect':
+		
+					if ConfirmPlayerHasConnected(userid, playersInMatch):
+						CreatePlayerGameData(addr, userid, sock, playersInMatch)
+
+				elif data['command'] == 'heartbeat':
+					heartbeats[userid] = datetime.now();
+
+				elif data['command'] == 'gameUpdate':
+					# Json format: { 'command': '', 'uid': '', 'orderid': 0, 'state': '', 'letterGuess': '', 'solveGuess': '', 'roundScore': 0, 'cumulativeScore': 0}
+
+					PlayerGameDataUpdate(data, userid, sock)
+
+				# Puzzle solved, start next round
+				elif data['command'] == 'roundEnd':
+					print("Round End")
+					HandleRoundEnd(sock);
+
+				# If someone leaves match, still treat it as a dropped player
+				elif data['command'] == 'quit':
+					SendRemovePlayer(sock, userid)
+					print(0)
+
+				# Just pass the message on to everyone else
+				elif data['command'] == 'loseTurn':
+					print("Lose Turn")
+					PassTurn(sock, data)
+
+			if (gameState['roundsLeft'] <= 0 and gameState['state'] == "playing"):
+				# Need the client to send final updates
+				gameState['state'] = "gameOver"
+				start_new_thread(PostGameDelay,(sock,))
+
 		except:
 			pass
-
-		# Who sent it
-		userid = data['uid']
-
-		if 'command' in data:
-
-			if data['command'] == 'connect':
-	
-				if ConfirmPlayerHasConnected(userid, playersInMatch):
-					CreatePlayerGameData(addr, userid, sock, playersInMatch)
-
-			elif data['command'] == 'heartbeat':
-				heartbeats[userid] = datetime.now();
-
-			elif data['command'] == 'gameUpdate':
-				# Json format: { 'command': '', 'uid': '', 'orderid': 0, 'state': '', 'letterGuess': '', 'solveGuess': '', 'roundScore': 0, 'cumulativeScore': 0}
-
-				PlayerGameDataUpdate(data, userid, sock)
-
-			# Puzzle solved, start next round
-			elif data['command'] == 'roundEnd':
-				print("Round End")
-				HandleRoundEnd(sock);
-
-			# If someone leaves match, still treat it as a dropped player
-			elif data['command'] == 'quit':
-				SendRemovePlayer(sock, userid)
-				print(0)
-
-			# Just pass the message on to everyone else
-			elif data['command'] == 'loseTurn':
-				print("Lose Turn")
-				PassTurn(sock, data)
-
-		if (gameState['roundsLeft'] <= 0 and gameState['state'] == "playing"):
-			# Need the client to send final updates
-			gameState['state'] = "gameOver"
-			start_new_thread(PostGameDelay,(sock,))
 
 ######################################################### Connection Functions
 
@@ -342,7 +342,9 @@ def ServerGameStateRelay(sock, userid):
 
 ################################################ Start Match
 
-def StartMatchLoop(sock, playersJoining, rounds):
+def StartMatchLoop(playersJoining, rounds):
+	sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+	sock.bind(('', 12345))
 	print("Match started")
 	gameState['currentPlayer'] = 0
 	gameState['remaingWords'] = 12
