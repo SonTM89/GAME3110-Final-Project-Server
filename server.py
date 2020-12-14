@@ -5,6 +5,7 @@ from _thread import *
 import threading
 from datetime import datetime
 import json
+import MatchServer
 
 clients_lock = threading.Lock()
 connected = 0
@@ -86,6 +87,11 @@ def gameLoop(sock):
       
       print(inMatchPlayers)
       if len(inMatchPlayers) >= numPlayersInMatch:
+
+         # Start match loop but using a thread so it doesn't block the loop
+         start_new_thread(StartMatchLoop,(sock, inMatchPlayers, 3,))
+         time.sleep(1) # Using this to make sure the loop initializes for sure
+
          print(len(inMatchPlayers))
          StartMessage = {"cmd": 3}
          s=json.dumps(StartMessage)
